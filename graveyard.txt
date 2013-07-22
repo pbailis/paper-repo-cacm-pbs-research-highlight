@@ -1,0 +1,380 @@
+
+
+\begin{figure*}[t!]
+\centering
+\subfigure{\includegraphics[width=\columnwidth]{figs/latlegend.pdf}}\\[-1mm]
+\subfigure{\includegraphics[width=.66\columnwidth]{figs/readlats-1.pdf}}
+\subfigure{\includegraphics[width=.66\columnwidth]{figs/readlats-2.pdf}}
+\subfigure{\includegraphics[width=.66\columnwidth]{figs/readlats-3.pdf}}
+\subfigure{\includegraphics[width=.66\columnwidth]{figs/writelats-1.pdf}}
+\subfigure{\includegraphics[width=.66\columnwidth]{figs/writelats-2.pdf}}
+\subfigure{\includegraphics[width=.66\columnwidth]{figs/writelats-3.pdf}}
+\caption{Read and write operation latency for production fits for
+  $N$$=$$3$. For reads, \texttt{LNKD-SSD} is equivalent to
+  \texttt{LNKD-DISK}. Higher values of $R$ and $W$ result in
+  latency.}
+\label{fig:latencies}
+\end{figure*}
+
+\subsection{Experimental Validation}
+\label{sec:validation}
+
+To validate \textit{WARS}, our simulation implementation, and our
+subsequent analyses, we compared our predicted $(\Delta, p)$-regular
+semantics and latency with the consistency we observed in a
+commercially supported, open source Dynamo-style data store.  We
+modified Cassandra to profile \textit{WARS} latencies, disabled read
+repair (as it is external to \textit{WARS}), and, for reads, only
+considered the first $R$ responses (often, more than $R$ messages
+would arrive by the processing stage, decreasing staleness).  We ran
+Cassandra on three servers with 2.2GHz AMD Opteron 2214 dual-core SMT
+processors and 4GB of 667MHz DDR2 memory, serving in-memory data.  To
+measure staleness, we inserted increasing versions of a key while
+concurrently issuing read requests and performed post-hoc log analysis
+to determine observed consistency.
+
+Our \textit{WARS} predictions matched our empirical observations of
+Cassandra's behavior. We injected a combination of exponentially
+distributed latencies into Cassandra; this was necessary to observe
+non-negligible inconsistency in our test cluster and approximates the
+long-tailed behavior of the production latency distributions we
+explore later (Section~\ref{sec:latencies}). In general, these exponential
+distributions had substantially higher variance than those we saw in
+practice (which fit well with Pareto bodies and exponential tails). We
+injected each combination of exponentially distributed
+$\texttt{W}=\lambda \in \{0.05,$ $0.1,$ $0.2\}$ (means $20$ms, $10$ms
+and $5$ms) and $\texttt{A}$$=$$\texttt{R}$$=$$\texttt{S}=\lambda \in
+\{0.1,$ $0.2,$ $0.5\}$ (means $10$ms, $5$ms and $2$ms) across 50,000
+writes.  After empirically measuring the \textit{WARS} distributions,
+consistency, and latency for each partial quorum configuration, we
+predicted the $(\Delta, p)$-regular semantics and latency.  This
+validates our Monte Carlo based implementation for IID
+distributions.
+
+
+\begin{table}
+\centering
+\begin{tabular}{|c|c|}
+\hline
+\%ile & Latency (ms) \\
+\hline
+\multicolumn{2}{|c|}{ 15,000 RPM SAS Disk}\\
+\hline
+Average & 4.85\\
+95 & 15\\
+99 & 25\\
+\hline
+\multicolumn{2}{|c|}{ Commodity SSD }\\
+\hline
+Average & 0.58 \\
+95 & 1\\
+99 & 2\\
+\hline
+\end{tabular}
+\caption{LinkedIn Voldemort single-node production latencies.}
+\label{table:linkedin}
+\end{table}
+
+
+
+\begin{table}
+\centering
+\begin{tabular}{|c|c|c|}
+\hline
+\%ile & Read Latency (ms) & Write Latency (ms)\\
+\hline
+Min & 1.55 & 1.68\\
+50 & 3.75 & 5.73 \\
+75 & 4.17 & 6.50\\
+95 & 5.2 & 8.48\\
+98 & 6.045 & 10.36 \\
+99 & 6.59 & 131.73\\
+99.9 & 32.89 & 435.83\\
+Max & 2979.85 &  4465.28 \\
+\hline
+Mean & 9.23 & 8.62 \\
+Std. Dev. & 83.93 & 26.10\\
+\hline
+Mean Rate & 718.18 gets/s & 45.65 puts/s\\
+\hline
+\end{tabular}
+\caption{Yammer Riak $N$$=$$3$, $R$$=$$2$, $W$$=$$2$ production latencies.}
+\label{table:yammer}
+\end{table}
+
+
+\begin{table}
+\centering
+\begin{tabular}{|c|r|}
+\hline
+\multirow{4}{*}{\texttt{LNKD-SSD}} & \multicolumn{1}{|l|}{$\texttt{W} = \texttt{A}= \texttt{R} = \texttt{S}:$} \\
+& 91.22\%: Pareto, $x_m=.235, \alpha=10$\\
+& 8.78\%: Exponential, $\lambda = 1.66$ \\
+& N-RMSE: .55\%\\\hline
+\multirow{4}{*}{\texttt{LNKD-DISK}} & 
+ \multicolumn{1}{|l|}{\texttt{W}:}\\
+& 38\%: Pareto, $x_m=1.05, \alpha=1.51$\\
+& \hfill 62\%: Exponential, $\lambda = .183$ \\
+& N-RMSE: .26\%\\\cline{2-2}
+& \multicolumn{1}{|l|}{$\texttt{A}= \texttt{R} = \texttt{S}: \texttt{LNKD-SSD}$}\\
+\hline
+\multirow{8}{*}{\texttt{YMMR}} & \multicolumn{1}{|l|}{\texttt{W}:} \\
+& 93.9\%: Pareto, $x_m=3, \alpha=3.35$\\
+& 6.1\%: Exponential, $\lambda = .0028$ \\
+& N-RMSE: 1.84\%\\\cline{2-2}
+& \multicolumn{1}{|l|}{$\texttt{A}= \texttt{R} = \texttt{S}:$}\\
+& 98.2\%: Pareto, $x_m=1.5, \alpha=3.8$\\
+& 1.8\%: Exponential, $\lambda=.0217$\\
+& N-RMSE: .06\%\\
+\hline
+\end{tabular}
+\caption{Distribution fits for production latency distributions from LinkedIn (\texttt{LNKD-*}) and Yammer (\texttt{YMMR}).}
+\label{table:fits}
+\end{table}
+
+
+\begin{algorithm}
+\begin{algorithmic}[1]
+  \State \textbf{given:} $N$, $R$, $W$, $\Delta$, \texttt{WARS} model, $iterations$\vspace{.5em}
+
+  \State consistent\_trials = 0
+  \For{$i=1 \to iterations$}
+    \Statex\hspace{4mm}\commentt{(generate WARS latencies for each replica}
+    \Statex\hspace{4mm}\commentt{ to find write and read latencies)}
+
+    \State Ws = \{\}; As = \{\}; Rs = \{\}; Ss = \{\};
+    \State write\_latencies = \{\}; read\_latencies = \{\};
+    \For{$replica = 0 \to N$}
+      \State Ws[$replica$] = \texttt{WARS}.nextW();
+      \State As[$replica$] = \texttt{WARS}.nextA();
+      \State write\_latencies[$replica$] = Ws[$replica$] + As[$replica$];
+      \\
+      \State Rs[$replica$] = \texttt{WARS}.nextR();
+      \State Ss[$replica$] = \texttt{WARS}.nextS();
+      \State read\_latencies[$replica$] = Rs[$replica$] + Ss[$replica$];
+    \EndFor\vspace{.5em}
+
+    \Statex\hspace{4mm}\commentt{(the $W$th fastest reply determines write finish)}
+    \State write\_finish = find\_nth\_smallest\_element(write\_latencies, W);
+    \Statex\hspace{4mm}\commentt{(the $R$th fastest reply determines read finish)}
+    \State read\_finish = find\_nth\_smallest\_element(read\_latencies, R);\vspace{.5em}
+    \Statex\hspace{4mm}\commentt{(find the first R replicas that replied)}
+    \State reply\_replicas = \{\};
+    \For{$replica = 0 \to N$}
+      \If{read\_latencies[$replica$] $\leq$ read\_finish}
+        \State reply\_replicas.append($replica$)
+      \EndIf
+    \EndFor\vspace{.5em}
+
+%    \State read\_latencies= [(i, Rs[$i$]+Ss[$i$]) for $i \in [0,N)$];
+%    \State reply\_replicas = [s[0] for $s\in$ read\_latencies.sort(\commentt{by Rs+Ss})];\vspace{.5em}
+
+    \Statex\hspace{4mm}\commentt{(determine if any responses were consistent)}
+    \For{$replica \in$ reply\_replicas}
+      \If{write\_finish + Rs[$replica$] + $\Delta$ $\ge$ Ws[$replica$]}
+        \State consistent\_trials += 1;
+        \State break;
+      \EndIf
+    \EndFor
+  \EndFor\vspace{.5em}
+
+\State \textbf{return} consistent\_trials/iterations;
+\caption{Calculating $p$ under $(\Delta, p)$-regular semantics using
+  \textit{WARS} model.}
+\label{alg:pseudocode}
+\end{algorithmic}
+\end{algorithm}
+
+
+
+\vspace{\subsectionskip}\subsection{Asynchronous Staleness Detection}
+\label{sec:detection}
+
+Even if a system provides a low probability of inconsistency,
+applications may need notification when data returned is inconsistent
+or staler than expected.  Here, as a side note, we discuss how the
+Dynamo protocol is naturally equipped for staleness detection.  We
+focus on PBS $(\Delta, p)$-regular semantics in the following
+discussion but it is easily extended to other PBS semantics.
+
+Knowing whether a response is stale at read time requires strong
+consistency.  Intuitively, by checking all possible values in the domain against a
+hypothetical staleness detector, we could determine the (strongly) consistent
+value to return.  While we cannot do so synchronously, we \textit{can}
+determine staleness asynchronously.  Asynchronous staleness detection
+allows speculative execution~\cite{nsdispeculation} if a program
+contains appropriate compensation logic.
+
+We first consider a staleness detector providing false positives.
+Recall that, in a Dynamo-style system, we wait for $R$ of $N$ replies
+before returning a value.  The remaining $N-R$ replicas will still
+reply to the read coordinator.  Instead of dropping these messages,
+the coordinator can compare them to the version it returned.  If there
+is a mismatch, then either $i.)$ the coordinator returned stale data,
+$ii.)$ there are in-flight writes in the system, or $iii.)$ additional
+versions committed after the read. The latter two cases, relating to
+data committed after the response initiation, lead to false positives.
+In these cases, the read did not return ``stale'' data even though
+there were newer but uncommitted versions in the system.  Notifying
+clients about newer but uncommitted versions of a data item is not
+necessarily bad but may be unnecessary.  This detector does not
+require modifications to the Dynamo protocol and is similar to the
+read-repair process.
+
+To eliminate these uncommitted-but-newer false positives (cases two
+and three), we need to determine the total, system-wide commit
+ordering of writes. Recall that replicas are unaware of the commit
+time for each version. The timestamps stored by replicas are not
+updated after commit, and commits occur after $W$ replicas
+respond. Thankfully, establishing a total ordering among distributed
+agents is a well-known problem that a Dynamo-style system can solve by
+using a centralized service~\cite{zookeeper} or using distributed
+consensus~\cite{paxos}. This requires modifications but is feasible.
+
+
+\vspace{\subsectionskip}\subsection{{\large \textit{WARS}} Scope}
+\label{sec:anti-entropy}
+
+\textbf{Proxying operations.} Depending on which coordinator a client
+contacts, coordinators may serve reads and writes locally.  In this
+case, subject to local query processing delays, a read or write to $R$
+or $W$ nodes behaves like a read or write to $R-1$ or $W-1$ nodes.
+Although we do not do so, one could adopt \textit{WARS} to handle local
+reads and writes.  The decision to proxy requests (and, if not, which
+replicas serve which requests) is data store and deployment-specific.
+Dynamo forwards write requests to a designated coordinator solely for
+the purpose of establishing a version ordering~\cite[Section
+  6.4]{dynamo} (easily achievable through other
+mechanisms~\cite{zookeeper}).  Dynamo's authors observed a latency
+improvement by proxying all operations and having clients act as
+coordinators---Voldemort adopts this
+architecture~\cite{voldemortclient}.
+
+\textbf{Client-side delays.} End-users will likely incur additional
+time between their reads and writes due to latency required to contact
+the service.  Individuals making requests to web services through
+their browsers will likely space sequential requests by tens or
+hundreds of milliseconds due to client-to-server latency.  Although we
+do not consider this delay here, it is important to remember for
+practical scenarios because delays between reads and writes ($\Delta$)
+for individual clients may be large.
+
+\textbf{Additional anti-entropy.} As we discussed in
+Section~\ref{sec:practice}, anti-entropy decreases the probability of
+staleness by propagating writes between replicas.  Dynamo-style
+systems also support additional anti-entropy processes~\cite{nosql}.
+\textit{Read repair} is a commonly used anti-entropy process: when a read
+coordinator receives multiple versions of a data item from different replicas in
+response to a read request, it will attempt to (asynchronously) update the
+out-of-date replicas with the most recent version~\cite[Section 5]{dynamo}.
+Read repair acts like an additional write for every read, except old values are
+re-written.  Additionally, Dynamo used Merkle trees to summarize and exchange
+data contents between replicas~\cite[Section 4.7]{dynamo}.  However, not all
+Dynamo-style data stores actively employ similar gossip-based anti-entropy.  For
+example, Cassandra uses Merkle tree anti-entropy only when manually requested
+(e.g., \texttt{nodetool repair}), instead relying primarily on quorum expansion
+and read repair~\cite{cassandra-merkle}.
+
+These processes are rate-dependent: read repair's efficiency depends
+on the rate of reads, and Merkle tree exchange's efficiency (and, more
+generally, most anti-entropy efficiency) depends on the rate of
+exchange.  A conservative assumption for read repair and Merkle tree
+exchange is that they never occur. For example, assuming a particular
+read repair rate implies a given rate of reads from each key in the
+system.
+
+In contrast, \textit{WARS} captures expanding quorum behavior
+independent of read rate and with conservative write rate
+assumptions. \textit{WARS} considers a single read and a single
+write. Aside from load considerations, concurrent reads do not affect
+staleness. If multiple writes overlap (that is, have overlapping
+periods where they are in-flight but are not committed) the
+probability of inconsistency decreases.  This is because overlapping
+writes result in an increased chance that a client reads
+as-yet-uncommitted data.  As a result, with \textit{WARS}, data may be
+fresher than predicted.
+
+
+
+\begin{figure*}[t!]
+\centering
+\subfigure{\includegraphics[width=.85\columnwidth]{figs/slowexpsim-R1W1-1.pdf}}
+\subfigure{\includegraphics[width=.85\columnwidth]{figs/slowexpsim-R1W1-2.pdf}}
+\caption{Impact of heterogeneous synthetic latency distributions across replicas. We evaluate
+  cases where one or two replicas have higher write latency (W') than the other
+  replica(s) (W) for exponentially distributed latencies.
+}
+\label{fig:slownodes-exp}
+\end{figure*}
+\vspace{\subsectionskip}\subsection{Heterogeneous Replica Behavior}
+\label{sec:slownodes}
+
+In our experiments thus far (with the exception of the
+multi-datacenter WAN scenario), we have assumed that all replicas
+behave according to the same latency distribution. In practice, this
+may not be the case: some nodes may have faulty components, may
+experience greater network delays, or may otherwise display anomalous
+behavior. Accordingly, we now use our PBS models to consider how
+heterogeneous nodes could affect the observed consistency. To begin,
+we quantify the effects of slow writes at replicas, using a range of
+exponentially distributed write latencies per-replica in our Monte
+Carlo analysis.  We fix \texttt{A}=\texttt{R}=\texttt{S} latencies as
+exponential distributions with mean $1$ms and vary
+\texttt{W}. Figure~\ref{fig:slownodes-exp} shows how consistency
+changes with time when we either have one or two slow replicas (for
+$N$$=$$3$, $R$$=$$1$, $W$$=$$1$). With one slow replica, when the
+variance of the slower replica (W$^*$) is $100$ms ($\lambda=.1$, mean
+$10$ms) the chance of consistent reads immediately after a write drops
+to around $60\%$ (compared to $75\%$ when all replicas have the same
+write latency). We see more inconsistency as the variance of the slow
+replica increases because write variance dictates the amount of staleness
+observed in the \textit{WARS} model. Comparing the results for W$^*$ with
+$100$ms variance to Section~\ref{sec:synthetic}
+(Figure~\ref{fig:varydelay}), we see that having one slow replica
+($60\%$ chance at $\Delta=0$, $\lambda$=0.10) has lower staleness than
+all three replicas being slow ($40\%$ chance at $\Delta=0$,
+$\lambda$=0.10). Accordingly, having a few high variance replicas is
+better than having all high variance replicas.
+
+To explore a real-world setting with heterogeneous replica behavior,
+we consider a scenario where some of the replicas store data on SSDs
+while others use spinning disks. We model this setup by using the
+\texttt{LNKD-SSD} and \texttt{LNKD-DISK} latency distributions for
+different replica configurations. For $R$$=$$1$, $W$$=$$1$
+(Figure~\ref{fig:slownodes}) having one replica with disks and two
+replicas with SSDs results in $(\Delta, p)$-regular semantics of
+$35$ms at 99.9\% probability of consistency. When two replicas use
+disks, we find that the $(\Delta, p)$-regular semantics at 99.9\%
+probability becomes $43$ms, which is very close to the case where all
+the replicas use spinning disks ($45.5$ms at $99.9\%$). With
+$R$$=$$2$, $W$$=$$1$, the effect of the slow node is reduced, and the
+$(\Delta, p)$-regular semantics are $3$ms at 99.9\% probability
+(compared to $13.6$ms at $99.9\%$). These results indicate that the
+consistency benefit of partially upgrading hardware across servers may
+not outweigh the cost of performance heterogeneity. However, if
+upgrading for other reasons (e.g., latency), consistency may improve as a side-benefit.
+
+\begin{figure*}[t!]
+\centering
+\subfigure{\includegraphics[width=.85\columnwidth]{figs/slowsim-R1W1.pdf}}
+\subfigure{\includegraphics[width=.85\columnwidth]{figs/slowsim-R2W1.pdf}}
+\caption{Impact of heterogeneous empirical latency distributions
+  across replicas.  For $N$$=$$3$, we consider cases where some
+  replicas use SSDs while others use disks.}
+\label{fig:slownodes}
+\end{figure*}
+
+We also modeled cases where a subset of the replicas have high
+latencies for \texttt{W,A,R} and \texttt{S}, a plausible approximation
+of the scenario of network congestion between some server racks within
+a data center (not shown). When all clients experienced the same
+slowdown across replicas (i.e., the clients were not co-located with
+the slow rack), we found that observed consistency actually increased,
+as the slower replicas were ignored by the read operations. This
+results in writes and reads being served from the faster replicas,
+meaning there are fewer chances for message re-ordering. Similarly, a
+single node failure can be approximated by using a latency
+distribution with a large mean for all operations on the failed node,
+and we again see an increase in consistency. If clients and servers
+are partitioned from one another, we do not expect this behavior:
+observed consistency will degrade.

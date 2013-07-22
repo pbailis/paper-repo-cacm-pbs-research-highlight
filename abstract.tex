@@ -1,0 +1,26 @@
+
+\begin{abstract}
+
+Data replication results in a fundamental trade-off between operation
+latency and consistency. At the weak end of the spectrum of possible
+consistency models is eventual consistency, which provides no limit to
+the staleness of data returned. However, anecdotally, eventual
+consistency is often ``good enough'' for practitioners given its
+latency and availability benefits. In this work, we explain this
+phenomenon and demonstrate that, despite their weak guarantees,
+eventually consistent systems regularly return consistent data while
+providing lower latency than their strongly consistent
+counterparts. To quantify the behavior of eventually consistent
+stores, we introduce Probabilistically Bounded Staleness (PBS), a
+consistency model that provides expected bounds on data staleness with
+respect to both versions and wall clock time. We derive a closed-form
+solution for versioned staleness and model real-time staleness for a
+large class of quorum replicated, Dynamo-style stores. Using PBS, we
+measure the trade-off between latency and consistency for partial,
+non-overlapping quorum systems under Internet production workloads. We
+quantitatively demonstrate how and why eventually consistent systems
+frequently return consistent data within tens of milliseconds while
+offering large latency benefits.
+%, where it currently ships as a feature of the software distribution.
+
+\end{abstract}
